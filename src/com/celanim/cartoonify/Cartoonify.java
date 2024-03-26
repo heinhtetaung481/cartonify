@@ -767,6 +767,22 @@ public class Cartoonify {
                 pushImage(edgePixels);
                 int[] edgeMask = edgePixels;
 
+//                Reduce Colours
+//            Get original image
+                cl_mem originalInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
+                // Set the arguments for the sobelEdgeDetect kernel and execute it
+                clSetKernelArg(reduceColoursKernel, 0, Sizeof.cl_mem, Pointer.to(originalInputMem));
+                clSetKernelArg(reduceColoursKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+                clSetKernelArg(reduceColoursKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
+                clSetKernelArg(reduceColoursKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
+                clEnqueueNDRangeKernel(commandQueue, reduceColoursKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+
+                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+
+            // Read the output pixels from the device to the host
+                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
+                pushImage(newPixels);
+                int[] reduceMask = newPixels;
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
