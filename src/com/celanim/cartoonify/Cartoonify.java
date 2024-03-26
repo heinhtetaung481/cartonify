@@ -783,6 +783,26 @@ public class Cartoonify {
                 clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
                 pushImage(newPixels);
                 int[] reduceMask = newPixels;
+
+                // Merge Mask
+                cl_mem edgeMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * edgeMask.length, Pointer.to(edgeMask), null);
+                cl_mem reduceMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * reduceMask.length, Pointer.to(reduceMask), null);
+
+                // Set the arguments for the sobelEdgeDetect kernel and execute it
+                clSetKernelArg(mergeMaskKernel, 0, Sizeof.cl_mem, Pointer.to(edgeMaskInputMem));
+                clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(reduceMaskInputMem));
+                clSetKernelArg(mergeMaskKernel, 2, Sizeof.cl_mem, Pointer.to(outputMem));
+                // pass colour arguments to white
+                clSetKernelArg(mergeMaskKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ white }));
+                clSetKernelArg(mergeMaskKernel, 4, Sizeof.cl_int, Pointer.to(new int[]{ width }));
+                clSetKernelArg(mergeMaskKernel, 5, Sizeof.cl_int, Pointer.to(new int[]{ height }));
+                clEnqueueNDRangeKernel(commandQueue, mergeMaskKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+
+                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+
+            // Read the output pixels from the device to the host
+                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
+                pushImage(newPixels);
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
