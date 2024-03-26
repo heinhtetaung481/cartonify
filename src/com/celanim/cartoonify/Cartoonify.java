@@ -684,6 +684,22 @@ public class Cartoonify {
             // We can read the kernel file to a string using below code
             final String srcCode = JOCLUtil.readResourceToString("/com/celanim/cartoonify/kernel.cl");
             System.out.println("Reading 'kernel.cl' file completed!");
+// Prepare OpenCL platform and device
+                final int platformIndex = 0;
+                final long deviceType = CL_DEVICE_TYPE_GPU;
+                final int deviceIndex = 0;
+
+                CL.setExceptionsEnabled(true);
+
+                // Obtain the number of platforms
+                int numPlatformsArray[] = new int[1];
+                clGetPlatformIDs(0, null, numPlatformsArray);
+                int numPlatforms = numPlatformsArray[0];
+
+                // Obtain a platform ID
+                cl_platform_id platforms[] = new cl_platform_id[numPlatforms];
+                clGetPlatformIDs(platforms.length, platforms, null);
+                cl_platform_id platform = platforms[platformIndex];
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
