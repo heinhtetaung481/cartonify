@@ -719,6 +719,16 @@ public class Cartoonify {
 
                 // Create a command-queue
                 cl_command_queue commandQueue = clCreateCommandQueue(context, device, 0, null);
+
+                // Load and compile the kernel code
+                cl_program program = clCreateProgramWithSource(context, 1, new String[]{ srcCode }, null, null);
+                clBuildProgram(program, 0, null, null, null, null);
+
+                // Create the kernels
+                cl_kernel gaussianBlurKernel = clCreateKernel(program, "gaussianBlur", null);
+                cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sobelEdgeDetect", null);
+                cl_kernel reduceColoursKernel = clCreateKernel(program, "reduceColours", null);
+                cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
