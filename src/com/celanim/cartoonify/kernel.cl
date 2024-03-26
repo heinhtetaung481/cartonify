@@ -166,8 +166,22 @@ __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
     newPixels[idx] = newColor;
 }
 
+// Merge Mask kernel
 __kernel void mergeMask(__global int *maskPixels, __global int *photoPixels, __global int *newPixels,
-		                const int maskColour, const int width) {
+                        const int maskColour, const int width, const int height) {
+    // Get the global thread IDs
+    int x = get_global_id(0);
+    int y = get_global_id(1);
 
+    // Get the pixel color from the mask and the photo
+    int idx = y * width + x;
+    int maskColor = maskPixels[idx];
+    int photoColor = photoPixels[idx];
+
+    // If the mask color matches the specified mask color, use the photo color
+    // Otherwise, use the mask color
+    int newColor = ((maskColor & 0xFFFFFF) == (maskColour & 0xFFFFFF)) ? photoColor : maskColor;
+
+    // Write the new pixel to the output image
+    newPixels[idx] = newColor;
 }
-
