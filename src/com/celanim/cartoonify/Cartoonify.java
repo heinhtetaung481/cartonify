@@ -729,6 +729,15 @@ public class Cartoonify {
                 cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sobelEdgeDetect", null);
                 cl_kernel reduceColoursKernel = clCreateKernel(program, "reduceColours", null);
                 cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
+
+                // Get the oldPixels and newPixels
+                int[] oldPixels = currentImage();
+                int[] newPixels = new int[width * height];
+
+                // Create memory objects for the input and output pixels
+                cl_mem inputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
+                cl_mem outputMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, Sizeof.cl_int * newPixels.length, null, null);
+
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
