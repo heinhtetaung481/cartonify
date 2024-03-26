@@ -700,6 +700,19 @@ public class Cartoonify {
                 cl_platform_id platforms[] = new cl_platform_id[numPlatforms];
                 clGetPlatformIDs(platforms.length, platforms, null);
                 cl_platform_id platform = platforms[platformIndex];
+                // Initialize the context properties
+                cl_context_properties contextProperties = new cl_context_properties();
+                contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
+
+                // Obtain the number of devices for the platform
+                int numDevicesArray[] = new int[1];
+                clGetDeviceIDs(platform, deviceType, 0, null, numDevicesArray);
+                int numDevices = numDevicesArray[0];
+
+                // Obtain a device ID
+                cl_device_id devices[] = new cl_device_id[numDevices];
+                clGetDeviceIDs(platform, deviceType, numDevices, devices, null);
+                cl_device_id device = devices[deviceIndex];
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
