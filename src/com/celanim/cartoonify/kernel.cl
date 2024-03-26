@@ -72,9 +72,68 @@ __kernel void gaussianBlur(
     newPixels[index] = newPixel;
 }
 
-__kernel void sobelEdgeDetect(__global int *pixels, __global int *newPixels,
-                              const int width, const int height, const int edgeThreshold) {
 
+__kernel void sobelEdgeDetect(__global int *oldPixels, __global int *newPixels, const int width, const int height) {
+    // Get the global thread IDs
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    // Sobel filter for edge detection
+    const int Gx[9] = {
+        -1, 0, 1,
+        -2, 0, 2,
+        -1, 0, 1
+    };
+    const int Gy[9] = {
+        -1, -2, -1,
+        0, 0, 0,
+        1, 2, 1
+    };
+
+    int gradientX = 0;
+    int gradientY = 0;
+
+    // Apply the Sobel filter
+    for (int filterY = -1; filterY <= 1; filterY++) {
+        for (int filterX = -1; filterX <= 1; filterX++) {
+            int sampleX = x + filterX;
+            int sampleY = y + filterY;
+
+            // Handle image boundaries
+            sampleX = clamp(sampleX, 0, width - 1);
+            sampleY = clamp(sampleY, 0, height - 1);
+
+            int pixelIndex = sampleY * width + sampleX;
+            int rgb = oldPixels[pixelIndex];
+
+            int filterIndex = (filterY + 1) * 3 + (filterX + 1);
+
+            // Extract the RGB values
+            int r = (rgb >> 16) & 0xFF;
+            int g = (rgb >> 8) & 0xFF;
+            int b = rgb & 0xFF;
+
+            // Apply the filter to each color channel
+            gradientX += r * Gx[filterIndex];
+            gradientY += r * Gy[filterIndex];
+
+            gradientX += g * Gx[filterIndex];
+            gradientY += g * Gy[filterIndex];
+
+            gradientX += b * Gx[filterIndex];
+            gradientY += b * Gy[filterIndex];
+        }
+    }
+
+    // Gradient magnitude approximation
+    int magnitude = abs(gradientX) + abs(gradientY);
+
+    // Thresholding
+    int newPixel = (magnitude >= 256) ? 0x00000000 : 0xFFFFFFFF;  // White or black
+
+    // Store the result
+    int index = y * width + x;
+    newPixels[index] = newPixel;
 }
 
 
