@@ -803,6 +803,11 @@ public class Cartoonify {
             // Read the output pixels from the device to the host
                 clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
                 pushImage(newPixels);
+
+                // Release memory objects
+                clReleaseMemObject(inputMem);
+                clReleaseMemObject(outputMem);
+
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
