@@ -750,6 +750,23 @@ public class Cartoonify {
 
                 clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
                 pushImage(newPixels);
+
+//                Sobel Edge Detection
+                // Set the arguments for the sobelEdgeDetect kernel and execute it
+                clSetKernelArg(sobelEdgeDetectKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
+                clSetKernelArg(sobelEdgeDetectKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+                clSetKernelArg(sobelEdgeDetectKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
+                clSetKernelArg(sobelEdgeDetectKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
+                clEnqueueNDRangeKernel(commandQueue, sobelEdgeDetectKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+
+//                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+
+            // Read the output pixels from the device to the host
+            int[] edgePixels = new int[width * height];
+            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, edgePixels.length * Sizeof.cl_int, Pointer.to(edgePixels), 0, null, null);
+                pushImage(edgePixels);
+                int[] edgeMask = edgePixels;
+
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
