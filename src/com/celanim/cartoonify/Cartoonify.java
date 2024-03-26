@@ -738,6 +738,18 @@ public class Cartoonify {
                 cl_mem inputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
                 cl_mem outputMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, Sizeof.cl_int * newPixels.length, null, null);
 
+                // Set the arguments for the gaussianBlur kernel and execute it
+                clSetKernelArg(gaussianBlurKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
+                clSetKernelArg(gaussianBlurKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+                clSetKernelArg(gaussianBlurKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
+                clSetKernelArg(gaussianBlurKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
+                clEnqueueNDRangeKernel(commandQueue, gaussianBlurKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+
+                // Copy the output pixels back to the input pixels for the next kernel
+                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+
+                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
+                pushImage(newPixels);
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
