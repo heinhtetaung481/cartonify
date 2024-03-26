@@ -137,9 +137,33 @@ __kernel void sobelEdgeDetect(__global int *oldPixels, __global int *newPixels, 
 }
 
 
+// Reduce Colours kernel
 __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
-		                    const int width, const int height, const int numColours) {
+                            const int width, const int height) {
+    // Get the global thread IDs
+    int x = get_global_id(0);
+    int y = get_global_id(1);
 
+    int numColours = 3;  // Number of colours to quantize to
+    int COLOUR_MASK = 255;  // Colour mask
+
+    // Get the pixel color
+    int idx = y * width + x;
+    int color = oldPixels[idx];
+
+    // Extract the RGB values
+    int r = (color >> 16) & 0xFF;
+    int g = (color >> 8) & 0xFF;
+    int b = color & 0xFF;
+
+    // Quantize each color channel
+    r = round((float)r / (COLOUR_MASK + 1.0f) * numColours - 0.49999f) * COLOUR_MASK / (numColours - 1);
+    g = round((float)g / (COLOUR_MASK + 1.0f) * numColours - 0.49999f) * COLOUR_MASK / (numColours - 1);
+    b = round((float)b / (COLOUR_MASK + 1.0f) * numColours - 0.49999f) * COLOUR_MASK / (numColours - 1);
+
+    // Write the new pixel to the output image
+    int newColor = (r << 16) | (g << 8) | b;
+    newPixels[idx] = newColor;
 }
 
 __kernel void mergeMask(__global int *maskPixels, __global int *photoPixels, __global int *newPixels,
