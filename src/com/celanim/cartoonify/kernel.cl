@@ -1,6 +1,37 @@
-// Guassian Blur kernel
-__kernel void gaussianBlur(__global int *pixels, __global int *newPixels,
-                           const int width, const int height) {
+int customClamp(float value) {
+    int result = (int) (value + 0.5); // round to nearest integer
+    if (result <= 0) {
+        return 0;
+    } else if (result > (1 << 8) - 1) {
+        return 255;
+    } else {
+        return result;
+    }
+}
+
+int wrap(int pos, int size) {
+    if (pos < 0) {
+        pos = -1 - pos;
+    } else if (pos >= size) {
+        pos = (size - 1) - (pos - size);
+    }
+    return pos;
+}
+
+int convolution(__global const int *oldPixels, int x, int y, int width, int height, const int *filter, int filterSize, int colour) {
+    int filterHalf = filterSize / 2;
+    int sum = 0;
+    for (int filterY = 0; filterY < filterSize; filterY++) {
+        int centerY = wrap(y + filterY - filterHalf, height);
+        for (int filterX = 0; filterX < filterSize; filterX++) {
+            int centerX = wrap(x + filterX - filterHalf, width);
+            int rgb = oldPixels[centerY * width + centerX];
+            int filterVal = filter[filterY * filterSize + filterX];
+            sum += ((rgb >> (colour * 8)) & 0xFF) * filterVal;
+        }
+    }
+    return sum;
+}
 __kernel void gaussianBlur(
     __global const int *oldPixels,  // Input image
     __global int *newPixels,        // Output image
