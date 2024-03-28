@@ -684,134 +684,153 @@ public class Cartoonify {
             // We can read the kernel file to a string using below code
             final String srcCode = JOCLUtil.readResourceToString("/com/celanim/cartoonify/kernel.cl");
             System.out.println("Reading 'kernel.cl' file completed!");
-// Prepare OpenCL platform and device
-                final int platformIndex = 0;
-                final long deviceType = CL_DEVICE_TYPE_GPU;
-                final int deviceIndex = 0;
+            // Prepare OpenCL platform and device
+            final int platformIndex = 0;
+            final long deviceType = CL_DEVICE_TYPE_GPU;
+            final int deviceIndex = 0;
 
-                CL.setExceptionsEnabled(true);
+            CL.setExceptionsEnabled(true);
 
-                // Obtain the number of platforms
-                int numPlatformsArray[] = new int[1];
-                clGetPlatformIDs(0, null, numPlatformsArray);
-                int numPlatforms = numPlatformsArray[0];
+            // Obtain the number of platforms
+            int numPlatformsArray[] = new int[1];
+            clGetPlatformIDs(0, null, numPlatformsArray);
+            int numPlatforms = numPlatformsArray[0];
 
-                // Obtain a platform ID
-                cl_platform_id platforms[] = new cl_platform_id[numPlatforms];
-                clGetPlatformIDs(platforms.length, platforms, null);
-                cl_platform_id platform = platforms[platformIndex];
-                // Initialize the context properties
-                cl_context_properties contextProperties = new cl_context_properties();
-                contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
+            // Obtain a platform ID
+            cl_platform_id platforms[] = new cl_platform_id[numPlatforms];
+            clGetPlatformIDs(platforms.length, platforms, null);
+            cl_platform_id platform = platforms[platformIndex];
 
-                // Obtain the number of devices for the platform
-                int numDevicesArray[] = new int[1];
-                clGetDeviceIDs(platform, deviceType, 0, null, numDevicesArray);
-                int numDevices = numDevicesArray[0];
+            // Initialize the context properties
+            cl_context_properties contextProperties = new cl_context_properties();
+            contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
 
-                // Obtain a device ID
-                cl_device_id devices[] = new cl_device_id[numDevices];
-                clGetDeviceIDs(platform, deviceType, numDevices, devices, null);
-                cl_device_id device = devices[deviceIndex];
+            // Obtain the number of devices for the platform
+            int numDevicesArray[] = new int[1];
+            clGetDeviceIDs(platform, deviceType, 0, null, numDevicesArray);
+            int numDevices = numDevicesArray[0];
 
-                // Create a context for the selected device
-                cl_context context = clCreateContext(contextProperties, 1, new cl_device_id[]{device}, null, null, null);
+            // Obtain a device ID
+            cl_device_id devices[] = new cl_device_id[numDevices];
+            clGetDeviceIDs(platform, deviceType, numDevices, devices, null);
+            cl_device_id device = devices[deviceIndex];
 
-                // Create a command-queue
-                cl_command_queue commandQueue = clCreateCommandQueue(context, device, 0, null);
+            // Create a context for the selected device
+            cl_context context = clCreateContext(contextProperties, 1, new cl_device_id[] { device }, null, null, null);
 
-                // Load and compile the kernel code
-                cl_program program = clCreateProgramWithSource(context, 1, new String[]{ srcCode }, null, null);
-                clBuildProgram(program, 0, null, null, null, null);
+            // Create a command-queue
+            cl_command_queue commandQueue = clCreateCommandQueue(context, device, 0, null);
 
-                // Create the kernels
-                cl_kernel gaussianBlurKernel = clCreateKernel(program, "gaussianBlur", null);
-                cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sobelEdgeDetect", null);
-                cl_kernel reduceColoursKernel = clCreateKernel(program, "reduceColours", null);
-                cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
+            // Load and compile the kernel code
+            cl_program program = clCreateProgramWithSource(context, 1, new String[] { srcCode }, null, null);
+            clBuildProgram(program, 0, null, null, null, null);
 
-                // Get the oldPixels and newPixels
-                int[] oldPixels = currentImage();
-                int[] newPixels = new int[width * height];
+            // Create the kernels
+            cl_kernel gaussianBlurKernel = clCreateKernel(program, "gaussianBlur", null);
+            cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sobelEdgeDetect", null);
+            cl_kernel reduceColoursKernel = clCreateKernel(program, "reduceColours", null);
+            cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
 
-                // Create memory objects for the input and output pixels
-                cl_mem inputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
-                cl_mem outputMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, Sizeof.cl_int * newPixels.length, null, null);
+            // Get the oldPixels and newPixels
+            int[] oldPixels = currentImage();
+            int[] newPixels = new int[width * height];
 
-                // Set the arguments for the gaussianBlur kernel and execute it
-                clSetKernelArg(gaussianBlurKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
-                clSetKernelArg(gaussianBlurKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
-                clSetKernelArg(gaussianBlurKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
-                clSetKernelArg(gaussianBlurKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
-                clEnqueueNDRangeKernel(commandQueue, gaussianBlurKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+            // Create memory objects for the input and output pixels
+            cl_mem inputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                    Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
+            cl_mem outputMem = clCreateBuffer(context, CL_MEM_WRITE_ONLY, Sizeof.cl_int * newPixels.length, null, null);
 
-                // Copy the output pixels back to the input pixels for the next kernel
-                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+            // GAUSSIAN BLUR
+            // Set the arguments for the gaussianBlur kernel and execute it
+            clSetKernelArg(gaussianBlurKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
+            clSetKernelArg(gaussianBlurKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+            clSetKernelArg(gaussianBlurKernel, 2, Sizeof.cl_int, Pointer.to(new int[] { width }));
+            clSetKernelArg(gaussianBlurKernel, 3, Sizeof.cl_int, Pointer.to(new int[] { height }));
+            clEnqueueNDRangeKernel(commandQueue, gaussianBlurKernel, 2, null, new long[] { width, height }, null, 0,
+                    null, null);
 
-                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
-                pushImage(newPixels);
+            // Copy the output pixels back to the input pixels for the next kernel
+            clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null,
+                    null);
 
-//                Sobel Edge Detection
-                // Set the arguments for the sobelEdgeDetect kernel and execute it
-                clSetKernelArg(sobelEdgeDetectKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
-                clSetKernelArg(sobelEdgeDetectKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
-                clSetKernelArg(sobelEdgeDetectKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
-                clSetKernelArg(sobelEdgeDetectKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
-                clEnqueueNDRangeKernel(commandQueue, sobelEdgeDetectKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int,
+                    Pointer.to(newPixels), 0, null, null);
+            pushImage(newPixels);
 
-//                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+            // SOBEL EDGE DETECT
+            // Set the arguments for the sobelEdgeDetect kernel and execute it
+            clSetKernelArg(sobelEdgeDetectKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
+            clSetKernelArg(sobelEdgeDetectKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+            clSetKernelArg(sobelEdgeDetectKernel, 2, Sizeof.cl_int, Pointer.to(new int[] { width }));
+            clSetKernelArg(sobelEdgeDetectKernel, 3, Sizeof.cl_int, Pointer.to(new int[] { height }));
+            clSetKernelArg(sobelEdgeDetectKernel, 4, Sizeof.cl_int, Pointer.to(new int[] { edgeThreshold }));
+            clEnqueueNDRangeKernel(commandQueue, sobelEdgeDetectKernel, 2, null, new long[] { width, height }, null, 0,
+                    null, null);
+
+            // clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int *
+            // oldPixels.length, 0, null, null);
 
             // Read the output pixels from the device to the host
             int[] edgePixels = new int[width * height];
-            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, edgePixels.length * Sizeof.cl_int, Pointer.to(edgePixels), 0, null, null);
-                pushImage(edgePixels);
-                int[] edgeMask = edgePixels;
+            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, edgePixels.length * Sizeof.cl_int,
+                    Pointer.to(edgePixels), 0, null, null);
+            pushImage(edgePixels);
+            int[] edgeMask = edgePixels;
 
-//                Reduce Colours
-//            Get original image
-                cl_mem originalInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
-                // Set the arguments for the sobelEdgeDetect kernel and execute it
-                clSetKernelArg(reduceColoursKernel, 0, Sizeof.cl_mem, Pointer.to(originalInputMem));
-                clSetKernelArg(reduceColoursKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
-                clSetKernelArg(reduceColoursKernel, 2, Sizeof.cl_int, Pointer.to(new int[]{ width }));
-                clSetKernelArg(reduceColoursKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ height }));
-                clEnqueueNDRangeKernel(commandQueue, reduceColoursKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
+            // REDUCE COLOURS
+            // Get original image
+            cl_mem originalInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                    Sizeof.cl_int * oldPixels.length, Pointer.to(oldPixels), null);
+            // Set the arguments for the sobelEdgeDetect kernel and execute it
+            clSetKernelArg(reduceColoursKernel, 0, Sizeof.cl_mem, Pointer.to(originalInputMem));
+            clSetKernelArg(reduceColoursKernel, 1, Sizeof.cl_mem, Pointer.to(outputMem));
+            clSetKernelArg(reduceColoursKernel, 2, Sizeof.cl_int, Pointer.to(new int[] { width }));
+            clSetKernelArg(reduceColoursKernel, 3, Sizeof.cl_int, Pointer.to(new int[] { height }));
+            clSetKernelArg(reduceColoursKernel, 4, Sizeof.cl_int, Pointer.to(new int[] { numColours }));
+            clEnqueueNDRangeKernel(commandQueue, reduceColoursKernel, 2, null, new long[] { width, height }, null, 0,
+                    null, null);
 
-                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
-
-            // Read the output pixels from the device to the host
-                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
-                pushImage(newPixels);
-                int[] reduceMask = newPixels;
-
-                // Merge Mask
-                cl_mem edgeMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * edgeMask.length, Pointer.to(edgeMask), null);
-                cl_mem reduceMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, Sizeof.cl_int * reduceMask.length, Pointer.to(reduceMask), null);
-
-                // Set the arguments for the sobelEdgeDetect kernel and execute it
-                clSetKernelArg(mergeMaskKernel, 0, Sizeof.cl_mem, Pointer.to(edgeMaskInputMem));
-                clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(reduceMaskInputMem));
-                clSetKernelArg(mergeMaskKernel, 2, Sizeof.cl_mem, Pointer.to(outputMem));
-                // pass colour arguments to white
-                clSetKernelArg(mergeMaskKernel, 3, Sizeof.cl_int, Pointer.to(new int[]{ white }));
-                clSetKernelArg(mergeMaskKernel, 4, Sizeof.cl_int, Pointer.to(new int[]{ width }));
-                clSetKernelArg(mergeMaskKernel, 5, Sizeof.cl_int, Pointer.to(new int[]{ height }));
-                clEnqueueNDRangeKernel(commandQueue, mergeMaskKernel, 2, null, new long[]{ width, height }, null, 0, null, null);
-
-                clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null, null);
+            clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null,
+                    null);
 
             // Read the output pixels from the device to the host
-                clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int, Pointer.to(newPixels), 0, null, null);
-                pushImage(newPixels);
+            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int,
+                    Pointer.to(newPixels), 0, null, null);
+            pushImage(newPixels);
+            int[] reduceMask = newPixels;
 
-                // Release memory objects
-                clReleaseMemObject(inputMem);
-                clReleaseMemObject(outputMem);
+            // Merge Mask
+            cl_mem edgeMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                    Sizeof.cl_int * edgeMask.length, Pointer.to(edgeMask), null);
+            cl_mem reduceMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                    Sizeof.cl_int * reduceMask.length, Pointer.to(reduceMask), null);
+
+            // Set the arguments for the sobelEdgeDetect kernel and execute it
+            clSetKernelArg(mergeMaskKernel, 0, Sizeof.cl_mem, Pointer.to(edgeMaskInputMem));
+            clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(reduceMaskInputMem));
+            clSetKernelArg(mergeMaskKernel, 2, Sizeof.cl_mem, Pointer.to(outputMem));
+            // pass colour arguments to white
+            clSetKernelArg(mergeMaskKernel, 3, Sizeof.cl_int, Pointer.to(new int[] { white }));
+            clSetKernelArg(mergeMaskKernel, 4, Sizeof.cl_int, Pointer.to(new int[] { width }));
+            clSetKernelArg(mergeMaskKernel, 5, Sizeof.cl_int, Pointer.to(new int[] { height }));
+            clEnqueueNDRangeKernel(commandQueue, mergeMaskKernel, 2, null, new long[] { width, height }, null, 0, null,
+                    null);
+
+            clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null,
+                    null);
+
+            // Read the output pixels from the device to the host
+            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int,
+                    Pointer.to(newPixels), 0, null, null);
+            pushImage(newPixels);
+
+            // Release memory objects
+            clReleaseMemObject(inputMem);
+            clReleaseMemObject(outputMem);
 
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
-
 
     }
 
