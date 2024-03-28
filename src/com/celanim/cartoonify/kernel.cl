@@ -106,12 +106,11 @@ __kernel void sobelEdgeDetect(__global int *oldPixels, __global int *newPixels, 
 
 // Reduce Colours kernel
 __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
-                            const int width, const int height) {
+                            const int width, const int height, int numColours) {
     // Get the global thread IDs
     int x = get_global_id(0);
     int y = get_global_id(1);
 
-    int numColours = 3;  // Number of colours to quantize to
     int COLOUR_MASK = 255;  // Colour mask
 
     // Get the pixel color
