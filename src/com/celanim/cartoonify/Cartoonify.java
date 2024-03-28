@@ -12,16 +12,21 @@ import javax.imageio.ImageIO;
 import static org.jocl.CL.*;
 
 /**
- * Processes lots of photos and uses edge detection and colour reduction to make them cartoon-like.
+ * Processes lots of photos and uses edge detection and colour reduction to make
+ * them cartoon-like.
  * <p>
  * Run <code>main</code> to see the usage message.
- * Each input image, eg. xyz.jpg, is processed and then output to a file called xyz_cartoon.jpg.
+ * Each input image, eg. xyz.jpg, is processed and then output to a file called
+ * xyz_cartoon.jpg.
  * <p>
- * Implementation Note: this class maintains a stack of images, with the original image being
- * at the bottom of the stack (position 0), and the current image being at the top
- * of the stack (this can be accessed as index -1).  Image processing methods
- * should create a new image (1D array of int pixels in row-major order) and push
- * it on top of the stack.  They should not modify images destructively.
+ * Implementation Note: this class maintains a stack of images, with the
+ * original image being
+ * at the bottom of the stack (position 0), and the current image being at the
+ * top
+ * of the stack (this can be accessed as index -1). Image processing methods
+ * should create a new image (1D array of int pixels in row-major order) and
+ * push
+ * it on top of the stack. They should not modify images destructively.
  *
  * @author Mark.Utting
  */
@@ -33,7 +38,8 @@ public class Cartoonify {
     public static final int COLOUR_BITS = 8;
 
     /**
-     * Each colour channel contains a colour value from 0 up to COLOUR_MASK (inclusive).
+     * Each colour channel contains a colour value from 0 up to COLOUR_MASK
+     * (inclusive).
      */
     public static final int COLOUR_MASK = (1 << COLOUR_BITS) - 1; // eg. 0xFF
 
@@ -93,7 +99,8 @@ public class Cartoonify {
     private int[][] pixels;
 
     /**
-     * The position of the current image in the pixels array. -1 means no current image.
+     * The position of the current image in the pixels array. -1 means no current
+     * image.
      */
     private int currImage;
 
@@ -105,7 +112,7 @@ public class Cartoonify {
      */
     public Cartoonify() {
         pixels = new int[4][];
-        currImage = -1;  // no image loaded initially
+        currImage = -1; // no image loaded initially
     }
 
     /**
@@ -152,7 +159,8 @@ public class Cartoonify {
     }
 
     /**
-     * Set this to true to print out extra timing information and save the intermediate photos.
+     * Set this to true to print out extra timing information and save the
+     * intermediate photos.
      *
      * @param debug
      */
@@ -179,7 +187,8 @@ public class Cartoonify {
     /**
      * Push the given image onto the stack of images.
      *
-     * @param newPixels must be the same size (width * height pixels), and contain RGB pixels.
+     * @param newPixels must be the same size (width * height pixels), and contain
+     *                  RGB pixels.
      */
     protected void pushImage(int[] newPixels) {
         assert newPixels.length == width * height;
@@ -208,10 +217,11 @@ public class Cartoonify {
      * duplicate all the pixels in the image.
      * <p>
      * Negative numbers are relative to the top of the stack, so -1 means duplicate
-     * the current top of the stack.  Zero or positive is relative to the bottom of
+     * the current top of the stack. Zero or positive is relative to the bottom of
      * the stack, so 0 means duplicate the original photo.
      *
-     * @param which the number of the photo to duplicate. From <code>-numImages() .. numImages()-1</code>.
+     * @param which the number of the photo to duplicate. From
+     *              <code>-numImages() .. numImages()-1</code>.
      */
     public void cloneImage(int which) {
         final int stackPos = which >= 0 ? which : (currImage + which + 1);
@@ -260,7 +270,8 @@ public class Cartoonify {
      * <p>
      * Does not change the stack of images.
      *
-     * @param newName the extension of this name (eg. .jpg) determines the output file type.
+     * @param newName the extension of this name (eg. .jpg) determines the output
+     *                file type.
      * @throws IOException
      */
     public void savePhoto(String newName) throws IOException {
@@ -309,7 +320,7 @@ public class Cartoonify {
             4, 9, 12, 9, 4, // sum=38
             5, 12, 15, 12, 5, // sum=49
             4, 9, 12, 9, 4, // sum=38
-            2, 4, 5, 4, 2  // sum=17
+            2, 4, 5, 4, 2 // sum=17
     };
     public static final double GAUSSIAN_SUM = 159.0;
 
@@ -351,7 +362,7 @@ public class Cartoonify {
      * mark the edges and the other pixels are all white.
      * <p>
      * The <code>getEdgeThreshold()</code> value determines how aggressive
-     * the edge-detection is.  Small values (e.g. 50) mean very aggressive,
+     * the edge-detection is. Small values (e.g. 50) mean very aggressive,
      * while large values (e.g. 1000) generate few edges.
      */
     public void sobelEdgeDetect() {
@@ -367,7 +378,8 @@ public class Cartoonify {
                 int blueHorizontal = convolution(x, y, SOBEL_HORIZONTAL_FILTER, BLUE);
                 int verticalGradient = Math.abs(redVertical) + Math.abs(greenVertical) + Math.abs(blueVertical);
                 int horizontalGradient = Math.abs(redHorizontal) + Math.abs(greenHorizontal) + Math.abs(blueHorizontal);
-                // we could take use sqrt(vertGrad^2 + horizGrad^2), but simple addition catches most edges.
+                // we could take use sqrt(vertGrad^2 + horizGrad^2), but simple addition catches
+                // most edges.
                 int totalGradient = verticalGradient + horizontalGradient;
                 if (totalGradient >= edgeThreshold) {
                     newPixels[y * width + x] = black; // we colour the edges black
@@ -384,7 +396,8 @@ public class Cartoonify {
     }
 
     /**
-     * Adds a new image that is the same as the current image but with fewer colours.
+     * Adds a new image that is the same as the current image but with fewer
+     * colours.
      * <p>
      * The <code>getNumColours()</code> setting determines the desired number of
      * colour values in EACH colour channel after this method finishes.
@@ -416,13 +429,15 @@ public class Cartoonify {
      * <p>
      * For example, if numPerChannel is 3, then:
      * <ul>
-     *   <li>0..85 will be mapped to 0;</li>
-     *   <li>86..170 will be mapped to 127;</li>
-     *   <li>171..255 will be mapped to 255;</li>
+     * <li>0..85 will be mapped to 0;</li>
+     * <li>86..170 will be mapped to 127;</li>
+     * <li>171..255 will be mapped to 255;</li>
      * </ul>
-     * So the output colour values always start at 0, end at COLOUR_MASK, and any other
-     * values are spread out evenly in between.  This requires some careful maths, to
-     * avoid overflow and to divide the input colours up into <code>numPerChannel</code>
+     * So the output colour values always start at 0, end at COLOUR_MASK, and any
+     * other
+     * values are spread out evenly in between. This requires some careful maths, to
+     * avoid overflow and to divide the input colours up into
+     * <code>numPerChannel</code>
      * equal-sized buckets.
      *
      * @param colourValue   0 .. COLOUR_MASK
@@ -431,8 +446,9 @@ public class Cartoonify {
      */
     int quantizeColour(int colourValue, int numPerChannel) {
         float colour = colourValue / (COLOUR_MASK + 1.0f) * numPerChannel;
-        //IMPORTANT NOTE: due to the different implemention of the "round" funciton in OpenCL, 
-        //you need to use 0.49999f instead of 0.5f in your kernel code
+        // IMPORTANT NOTE: due to the different implemention of the "round" funciton in
+        // OpenCL,
+        // you need to use 0.49999f instead of 0.5f in your kernel code
         int discrete = Math.round(colour - 0.5f);
         assert 0 <= discrete && discrete < numPerChannel;
         int newColour = discrete * COLOUR_MASK / (numPerChannel - 1);
@@ -444,11 +460,11 @@ public class Cartoonify {
      * Merges a mask image on top of another image.
      * <p>
      * Since this operation takes two input images, it allows the caller
-     * to specify those images by their position.  The input images are
+     * to specify those images by their position. The input images are
      * left unchanged, and the new merged image is pushed on top of the stack.
      *
      * @param maskImage  the number/position of the mask (as for cloneImage).
-     * @param maskColour an exact pixel colour.  Where the mask is this colour,
+     * @param maskColour an exact pixel colour. Where the mask is this colour,
      *                   the other image will be chosen.
      * @param otherImage the number/position of the underneath image.
      */
@@ -480,19 +496,22 @@ public class Cartoonify {
      * This applies the given N*N filter around the pixel (xCentre,yCentre).
      * <p>
      * Applying a filter means multiplying each nearby pixel (within the N*N box)
-     * by the corresponding factor in the filter array (which is conceptually a 2D matrix).
+     * by the corresponding factor in the filter array (which is conceptually a 2D
+     * matrix).
      * <p>
-     * This method does not change the current image at all.  It just multiplies
+     * This method does not change the current image at all. It just multiplies
      * the filter matrix by the colour values of the pixels around (xCentre,yCentre)
      * and returns the resulting (integer) value.
      * <p>
-     * This method is 'package-private' (the default protection) so that the tests can test it.
+     * This method is 'package-private' (the default protection) so that the tests
+     * can test it.
      *
      * @param xCentre
      * @param yCentre
      * @param filter  a 2D square matrix, laid out in row-major order in a 1D array.
      * @param colour  which colour to apply the filter to.
-     * @return the sum of multiplying the requested colour of each pixel by its filter factor.
+     * @return the sum of multiplying the requested colour of each pixel by its
+     *         filter factor.
      */
     int convolution(int xCentre, int yCentre, int[] filter, int colour) {
         int sum = 0;
@@ -527,7 +546,8 @@ public class Cartoonify {
      * The current implementation reflects off each edge.
      *
      * @param pos  an index that might be slightly outside the image boundaries.
-     * @param size the width of the image (for x value) or the height (for y values).
+     * @param size the width of the image (for x value) or the height (for y
+     *             values).
      * @return the new index, which is in the range <code>0 .. size-1</code>.
      */
     public int wrap(int pos, int size) {
@@ -564,7 +584,8 @@ public class Cartoonify {
      * @param x must be in the range <code>0 .. width-1</code>.
      * @param y must be in the range <code>0 .. height-1</code>.
      * @return the requested pixel of the current image, in RGB format.
-     * @throws ArrayIndexOutOfBoundsException exception if there is no current image.
+     * @throws ArrayIndexOutOfBoundsException exception if there is no current
+     *                                        image.
      */
     public int pixel(int x, int y) {
         return currentImage()[y * width + x];
@@ -629,14 +650,16 @@ public class Cartoonify {
     /**
      * Processes one input photo, applying all the desired transformations to it.
      * Saves the resulting photo in a new file of the same type.
-     * E.g. if the input file is "foo.jpg" the output file will be "foo_cartoon.jpg".
+     * E.g. if the input file is "foo.jpg" the output file will be
+     * "foo_cartoon.jpg".
      *
      * @param name path to the photo, including a known extension (e.g. ".jpg").
-     * @return the number of milliseconds to process this photo (excluding loading/saving).
+     * @return the number of milliseconds to process this photo (excluding
+     *         loading/saving).
      * @throws IOException
      */
     protected long processPhoto(String name) throws IOException {
-        //no need to change the implementation of this method
+        // no need to change the implementation of this method
         int dot = name.lastIndexOf(".");
         if (dot <= 0) {
             System.err.println("Skipping unknown kind of file: " + name);
@@ -646,21 +669,21 @@ public class Cartoonify {
         final String extn = name.substring(dot).toLowerCase();
         loadPhoto(name);
         final String newName = baseName + "_cartoon" + extn;
-        //Please do NOT change the start of time measurement
+        // Please do NOT change the start of time measurement
         final long time0 = System.currentTimeMillis();
         if (useGPU) {
             processPhotoOpenCL();
         } else {
             processPhotoOnCPU();
         }
-        //Please do NOT change the end of time measurement
+        // Please do NOT change the end of time measurement
         long time1 = System.currentTimeMillis();
-        //Please do NOT remove or change this output message
+        // Please do NOT remove or change this output message
         System.out.println("Done " + name + " -> " + newName + " in " + (time1 - time0) / 1e3 + " secs.");
         savePhoto(newName);
         if (debug) {
             // At this stage the stack of images is (from bottom to top):
-            //  original, blurred, edges, original, quantized, final
+            // original, blurred, edges, original, quantized, final
             popImage();
             savePhoto(baseName + "_colours" + extn);
             popImage();
@@ -674,7 +697,6 @@ public class Cartoonify {
         clear();
         return time1 - time0;
     }
-
 
     /**
      * Implement this method to process one input photo on GPU or GPU and CPU
@@ -849,13 +871,12 @@ public class Cartoonify {
         mergeMask(edgeMask, white, -1);
     }
 
-
     /**
      * Uses the given command line arguments to set Cartoonify options.
      *
      * @param args     command line arguments
      * @param firstArg the first argument to start at.
-     * @return the position of the first non-flag argument.  That is, first file.
+     * @return the position of the first non-flag argument. That is, first file.
      */
     protected int setFlags(String[] args, int firstArg) {
         int currArg = firstArg;
@@ -887,7 +908,8 @@ public class Cartoonify {
         System.out.println("Arguments: [-g] [-d] [-e EdgeThreshold] [-c NumColours] photo1.jpg photo2.jpg ...");
         System.out.println("  -g use the GPU, to speed up photo processing.");
         System.out.println("  -d means turn on debugging, which saves intermediate photos.");
-        System.out.println("  -e EdgeThreshold values can range from 0 (everything is an edge) up to about 1000 or more.");
+        System.out.println(
+                "  -e EdgeThreshold values can range from 0 (everything is an edge) up to about 1000 or more.");
         System.out.println("  -c NumColours is the number of discrete values within each colour channel (2..256).");
     }
 
@@ -898,7 +920,7 @@ public class Cartoonify {
      * @throws IOException
      */
     public static void main(String[] args) throws IOException {
-        //no need to change the implementation of the main method
+        // no need to change the implementation of the main method
         Cartoonify cartoon = new Cartoonify();
         if (args.length == 0) {
             cartoon.help();
@@ -911,7 +933,7 @@ public class Cartoonify {
             time += cartoon.processPhoto(args[arg]);
             done++;
         }
-        //Please do NOT remove or change this output message
+        // Please do NOT remove or change this output message
         System.out.format("Average processing time is %.3f for %d photos.", time / done / 1e3, done);
     }
 
