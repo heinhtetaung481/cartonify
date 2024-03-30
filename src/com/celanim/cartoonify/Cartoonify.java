@@ -779,10 +779,6 @@ public class Cartoonify {
             clEnqueueCopyBuffer(commandQueue, outputMem, inputMem, 0, 0, Sizeof.cl_int * oldPixels.length, 0, null,
                     null);
 
-            clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int,
-                    Pointer.to(newPixels), 0, null, null);
-            pushImage(newPixels);
-
             // SOBEL EDGE DETECT
             // Set the arguments for the sobelEdgeDetect kernel and execute it
             clSetKernelArg(sobelEdgeDetectKernel, 0, Sizeof.cl_mem, Pointer.to(inputMem));
@@ -823,17 +819,14 @@ public class Cartoonify {
             clEnqueueReadBuffer(commandQueue, outputMem, CL_TRUE, 0, newPixels.length * Sizeof.cl_int,
                     Pointer.to(newPixels), 0, null, null);
             pushImage(newPixels);
-            int[] reduceMask = newPixels;
 
             // Merge Mask
             cl_mem edgeMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                     Sizeof.cl_int * edgeMask.length, Pointer.to(edgeMask), null);
-            cl_mem reduceMaskInputMem = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                    Sizeof.cl_int * reduceMask.length, Pointer.to(reduceMask), null);
 
             // Set the arguments for the sobelEdgeDetect kernel and execute it
             clSetKernelArg(mergeMaskKernel, 0, Sizeof.cl_mem, Pointer.to(edgeMaskInputMem));
-            clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(reduceMaskInputMem));
+            clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(inputMem));
             clSetKernelArg(mergeMaskKernel, 2, Sizeof.cl_mem, Pointer.to(outputMem));
             // pass colour arguments to white
             clSetKernelArg(mergeMaskKernel, 3, Sizeof.cl_int, Pointer.to(new int[] { white }));
