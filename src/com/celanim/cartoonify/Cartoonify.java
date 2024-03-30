@@ -330,6 +330,8 @@ public class Cartoonify {
     public void gaussianBlur() {
         long startBlur = System.currentTimeMillis();
         int[] newPixels = new int[width * height];
+        int filterSize = (int) Math.sqrt(GAUSSIAN_FILTER.length);
+        int red = 0, green = 0, blue = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int red = clamp(convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM);
@@ -368,6 +370,7 @@ public class Cartoonify {
     public void sobelEdgeDetect() {
         long startEdges = System.currentTimeMillis();
         int[] newPixels = new int[width * height];
+        int filterSize = (int) Math.sqrt(SOBEL_VERTICAL_FILTER.length);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int redVertical = convolution(x, y, SOBEL_VERTICAL_FILTER, RED);
@@ -513,13 +516,7 @@ public class Cartoonify {
      * @return the sum of multiplying the requested colour of each pixel by its
      *         filter factor.
      */
-    int convolution(int xCentre, int yCentre, int[] filter, int colour) {
-        int sum = 0;
-        // find the width and height of the filter matrix, which must be square.
-        int filterSize = 1;
-        while (filterSize * filterSize < filter.length) {
-            filterSize++;
-        }
+    int[] convolution(int xCentre, int yCentre, int[] filter, int filterSize) {
         if (filterSize * filterSize != filter.length) {
             throw new IllegalArgumentException("non-square filter: " + Arrays.toString(filter));
         }
