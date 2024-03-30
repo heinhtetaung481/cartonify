@@ -334,9 +334,10 @@ public class Cartoonify {
         int red = 0, green = 0, blue = 0;
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int red = clamp(convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM);
-                int green = clamp(convolution(x, y, GAUSSIAN_FILTER, GREEN) / GAUSSIAN_SUM);
-                int blue = clamp(convolution(x, y, GAUSSIAN_FILTER, BLUE) / GAUSSIAN_SUM);
+                int[] rgb = convolution(x, y, GAUSSIAN_FILTER, filterSize);
+                red = clamp(rgb[RED] / GAUSSIAN_SUM);
+                green = clamp(rgb[GREEN] / GAUSSIAN_SUM);
+                blue = clamp(rgb[BLUE] / GAUSSIAN_SUM);
                 newPixels[y * width + x] = createPixel(red, green, blue);
             }
         }
@@ -373,12 +374,14 @@ public class Cartoonify {
         int filterSize = (int) Math.sqrt(SOBEL_VERTICAL_FILTER.length);
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int redVertical = convolution(x, y, SOBEL_VERTICAL_FILTER, RED);
-                int greenVertical = convolution(x, y, SOBEL_VERTICAL_FILTER, GREEN);
-                int blueVertical = convolution(x, y, SOBEL_VERTICAL_FILTER, BLUE);
-                int redHorizontal = convolution(x, y, SOBEL_HORIZONTAL_FILTER, RED);
-                int greenHorizontal = convolution(x, y, SOBEL_HORIZONTAL_FILTER, GREEN);
-                int blueHorizontal = convolution(x, y, SOBEL_HORIZONTAL_FILTER, BLUE);
+                int[] rgbVertical = convolution(x, y, SOBEL_VERTICAL_FILTER, filterSize);
+                int redVertical = rgbVertical[RED];
+                int greenVertical = rgbVertical[GREEN];
+                int blueVertical = rgbVertical[BLUE];
+                int[] rgbHorizontal = convolution(x, y, SOBEL_HORIZONTAL_FILTER, filterSize);
+                int redHorizontal = rgbHorizontal[RED];
+                int greenHorizontal = rgbHorizontal[GREEN];
+                int blueHorizontal = rgbHorizontal[BLUE];
                 int verticalGradient = Math.abs(redVertical) + Math.abs(greenVertical) + Math.abs(blueVertical);
                 int horizontalGradient = Math.abs(redHorizontal) + Math.abs(greenHorizontal) + Math.abs(blueHorizontal);
                 // we could take use sqrt(vertGrad^2 + horizGrad^2), but simple addition catches
@@ -517,6 +520,7 @@ public class Cartoonify {
      *         filter factor.
      */
     int[] convolution(int xCentre, int yCentre, int[] filter, int filterSize) {
+        int redSum = 0, greenSum = 0, blueSum = 0;
         if (filterSize * filterSize != filter.length) {
             throw new IllegalArgumentException("non-square filter: " + Arrays.toString(filter));
         }
@@ -527,11 +531,14 @@ public class Cartoonify {
                 int x = wrap(xCentre + filterX - filterHalf, width);
                 int rgb = pixel(x, y);
                 int filterVal = filter[filterY * filterSize + filterX];
-                sum += colourValue(rgb, colour) * filterVal;
+                redSum += colourValue(rgb, RED) * filterVal;
+                greenSum += colourValue(rgb, GREEN) * filterVal;
+                blueSum += colourValue(rgb, BLUE) * filterVal;
             }
         }
         // System.out.println("convolution(" + xCentre + ", " + yCentre + ") = " + sum);
-        return sum;
+        return new int[]{blueSum, greenSum, redSum};
+//        return [redSum, greenSum, blueSum];
     }
 
     /**
