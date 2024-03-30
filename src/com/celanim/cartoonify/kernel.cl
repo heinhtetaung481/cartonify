@@ -18,7 +18,7 @@ int wrap(int pos, int size) {
     return pos;
 }
 
-int convolution(__global const int *oldPixels, int x, int y, int width, int height, const int *filter, int filterSize, int colour) {
+int convolution(__global const int *oldPixels, int x, int y, int width, int height, const __constant int *filter, int filterSize, int colour) {
     int filterHalf = filterSize / 2;
     int sum = 0;
     for (int filterY = 0; filterY < filterSize; filterY++) {
@@ -32,6 +32,15 @@ int convolution(__global const int *oldPixels, int x, int y, int width, int heig
     }
     return sum;
 }
+
+__constant int filter[25] = {
+    2, 4, 5, 4, 2,
+    4, 9, 12, 9, 4,
+    5, 12, 15, 12, 5,
+    4, 9, 12, 9, 4,
+    2, 4, 5, 4, 2
+};
+
 __kernel void gaussianBlur(
     __global const int *oldPixels,  // Input image
     __global int *newPixels,        // Output image
@@ -50,13 +59,7 @@ __kernel void gaussianBlur(
     // Gaussian filter definition (use your actual filter values)
     const int filterSize = 5;
     const int filterHalf = filterSize / 2;
-    int filter[25] = {
-            2, 4, 5, 4, 2, // sum=17
-            4, 9, 12, 9, 4, // sum=38
-            5, 12, 15, 12, 5, // sum=49
-            4, 9, 12, 9, 4, // sum=38
-            2, 4, 5, 4, 2  // sum=17
-    };
+
     const float filterSum = 159.0;
     int red = customClamp(convolution(oldPixels, x, y, width, height, filter, filterSize, 2) / filterSum);
     int green = customClamp(convolution(oldPixels, x, y, width, height, filter, filterSize, 1) / filterSum);
@@ -64,26 +67,20 @@ __kernel void gaussianBlur(
     newPixels[y * width + x] = (red << 16) + (green << 8) + blue;
 }
 
-
+__constant int Gx[9] = {
+    -1, 0, 1,
+    -2, 0, 2,
+    -1, 0, 1
+};
+__constant int Gy[9] = {
+    -1, -2, -1,
+    0, 0, 0,
+    1, 2, 1
+};
 __kernel void sobelEdgeDetect(__global int *oldPixels, __global int *newPixels, const int width, const int height, int threshold) {
     // Get the global thread IDs
     int x = get_global_id(0);
     int y = get_global_id(1);
-
-    // Sobel filter for edge detection
-    const int Gx[9] = {
-        -1, 0, 1,
-        -2, 0, 2,
-        -1, 0, 1
-    };
-    const int Gy[9] = {
-        -1, -2, -1,
-        0, 0, 0,
-        1, 2, 1
-    };
-
-    int gradientX = 0;
-    int gradientY = 0;
 
     // Apply the Sobel filter
     int redVertical = convolution(oldPixels, x, y, width, height, Gx, 3, 2);
