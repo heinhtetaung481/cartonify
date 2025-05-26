@@ -116,6 +116,53 @@ public class Cartoonify {
     }
 
     /**
+     * Processes a BufferedImage object and returns a cartoonified BufferedImage.
+     *
+     * @param image The BufferedImage to process.
+     * @return A new BufferedImage that has been cartoonified.
+     * @throws IOException if there's an issue with image processing.
+     */
+    public BufferedImage processBufferedImage(BufferedImage image) throws IOException {
+        if (image == null) {
+            throw new IllegalArgumentException("Input image cannot be null.");
+        }
+        // Set width and height based on the input image
+        // If an image was previously loaded via loadPhoto, this will override width/height
+        // which is the desired behavior for processing a new BufferedImage.
+        // If no image was loaded, this initializes width/height.
+        this.width = image.getWidth();
+        this.height = image.getHeight();
+
+        // Convert BufferedImage to int[] pixels
+        int[] newPixels = image.getRGB(0, 0, width, height, null, 0, width);
+        for (int i = 0; i < newPixels.length; i++) {
+            newPixels[i] &= 0x00FFFFFF; // remove any alpha channel
+        }
+        // Clear any previous state from the stack before pushing the new image
+        // This ensures that processBufferedImage operates on a clean slate for each call,
+        // similar to how processPhoto starts by loading a new photo.
+        clear();
+        pushImage(newPixels);
+
+        // Process the image using either GPU or CPU
+        if (useGPU) {
+            processPhotoOpenCL();
+        } else {
+            processPhotoOnCPU();
+        }
+
+        // Retrieve the processed image
+        int[] resultPixels = currentImage();
+        BufferedImage resultImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        resultImage.setRGB(0, 0, width, height, resultPixels, 0, width);
+
+        // Clean up the stack
+        clear();
+
+        return resultImage;
+    }
+
+    /**
      * @return What level of colour change should be considered an edge.
      */
     public int getEdgeThreshold() {
